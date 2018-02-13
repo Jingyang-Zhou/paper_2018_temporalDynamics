@@ -1,0 +1,60 @@
+function rsp = sit2009_staticNonlinear(sz, rf_sig, tau, sort_sz, stim_dur, modelType)
+
+% QUESTION: 
+
+% About modelType:
+% (1) "STN" - supressive temporal normalization?
+% (2) "ETC" - exponentiated temporal compressive?
+
+% test:
+figureOn = 0;
+
+sz       = 30;   % number of entries per dimension of receptive field and stimulus
+rf_sig   = 1;    % the spread of the spatial receptive fielf
+tau      = 0.05; % the length of the temporal receptive window
+cort_sz  = 2.75; % mm, the extent of cortex we are looking at
+stim_dur = 0.2;  % stimulus duration
+
+% make parameters
+prm = sit2009_mkParameters(sz, rf_sig, tau, cort_sz, stim_dur);
+
+rf   = prm.rf;
+stim = prm.stim;
+
+%% construct response output
+
+% useful functions
+normMax = @(x) x./max(x(:));
+
+% compute STN model prediction
+stn = @(x) x.^2./(0.1^2 + x.^2);
+
+
+rsp = [];
+
+% compute linear response
+rsp.lin = convn(stim.st, rf.f, 'full');
+mid     = round(size(rsp.lin, 1)/2);
+rsp.lin = rsp.lin(mid-sz/2 : mid + sz/2-1, mid-sz/2 : mid + sz/2-1, 1 : size(rf.f, 3));
+
+switch modelType
+    case 'STN'
+        % compute STN response
+        rsp.stn = stn(rsp.lin);
+    case 'ETC'
+        % compute ETC response
+        rsp.etc = 
+end
+
+% compute non-linear response (using the Naka-Rushton CRF)
+
+
+%% visualize
+
+if figureOn
+    figure (1), clf
+    subplot(2, 3, 1), imagesc(rf_sp), subplot(2, 3, 2), imagesc(stim_s)
+    subplot(2, 3, 3), imagesc(rsp_2d)
+end
+
+end
