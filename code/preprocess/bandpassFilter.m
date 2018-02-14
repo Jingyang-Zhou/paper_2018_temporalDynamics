@@ -16,9 +16,14 @@ if isa(bands, 'cell')
     bands   = [lb; ub]';
 end
 
-%% band pass filter each sub-band
+%% BAND-PASS FILTER EACH SUB-BAND
+
 bp  = zeros([size(x) size(bands,1)]);
 
+% CHECK THE DIMENSION OF THE TIME SERIES DATA -----------------------------
+if size(x, 2) > size(x, 1), warning('[bandpassFilter] Input data dimension: time course x num.electrodes/'), end
+
+% BANDPASS FILTER ---------------------------------------------------------
 for ii = 1:size(bands,1)
     bp(:,:, ii) = butterpass_eeglabdata(x,bands(ii,:),srate);
 end

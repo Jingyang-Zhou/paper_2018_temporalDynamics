@@ -1,197 +1,156 @@
-% dn_extract broadband
-
-% WHAT IS STORED IN THE RAW DATA ------------------------------------------
-
-% The ECoG experiment consists of 
+% dn_extractBroadband.m
+%
+% STEPS -------------------------------------------------------------------
+% (1) Compute the spectrogram, and decided using two ranges of frequency
+%     bands for broadband extraction.
+% (2) Band-pass filter using two band ranges ([70, 210], [110, 210]),
+%     avoiding the line noise at 16, 120, and 180 Hz.
+% (3) Compared two ways of broadband computation, and settled on the
+%     simpler way.
+%
+% THE RAW DATA ------------------------------------------------------------
+% The ECoG experiment consists of
 % (1) 7 stimulus types, each type with 30 repeats, so a total of 210 trials
 % (2) each trials consists of 1204 sampling point (time course, 1000Hz)
 % (3) a total of 71 good channels and their correpsonding labels
 % (4) an extracted broadband matrix, which we will compute here
 
+%% SAVE KNOBs
+
+saveFigure = 1;
+saveData   = 1;
+
 %% LOAD, MAKE AND SAVE RAW DATA
 
-raw = [];
+fName = 'dn_rawData.mat';
+dtLoc = fullfile(dn_ECoG_RootPath, 'data');
+a     = load(fullfile(dtLoc, fName));
+raw   = a.raw;
 
-[raw.ts, raw.stimNames, raw.imNames, raw.goodLabels, raw.goodChannels,raw.idx] = dn_getRawData;
-
-% save raw data
-% fName = 'dn_rawData.mat'; fLoc  = fullfile(dn_ECoG_RootPath, 'data', fName);
-% save(fLoc, 'raw')
+% ALTERNATIVELY, WE CAN RE-GET THE RAW DATA --------------------------------
+% raw = [];
+% [raw.ts, raw.stimNames, raw.imNames, raw.goodLabels, raw.goodChannels,raw.idx] = dn_getRawData;
 
 %% PRE-DEFINED VARIABLES AND FUNCTIONS
 
 % USEFUL FUNCTIONS --------------------------------------------------------
 whiten   = @(x) (x - mean(x(:)))./ diff(prctile(x, [.25 .75]));
 normMax  = @(x) x./max(x);
-normBase = @(x) x-mean(x(1 : 200));
+normBase = @(x) x - mean(x(1 : 200));
+normBM   = @(x) normMax(normBase(x));
 
 % PREDEFINED VARIABLES ----------------------------------------------------
-srate    = 1000;
-nElec    = size(raw.ts, 2); % number of electrodes
-exp_elec = 1;               % example electrode
-exp_ts   = raw.ts(:, exp_elec);
+srate = 1000;
+nElec = size(raw.ts, 2); % number of electrodes
+
+% DERIVED VARIABLES -------------------------------------------------------
+ts  = raw.ts;
+idx = raw.idx;
+T   = size(idx, 2)/srate;
+t   = 1/srate : 1/srate : T;
 
 % HILBERT TRANSFORMS ------------------------------------------------------
-stand_hilbert = @(x) abs(hilbert(x));
+stand_hilbert  = @(x) abs(hilbert(x));
+whiten_hilbert = @(x) abs(hilbert(whiten(x)));
 
-%% ABOUT BROADBAND SIGNAL
+%% TIME-FREQUENCY ANALYSIS - SPECTROGRAM
 
-% Broadband signal refers to a uniform increase (or a shift) of all the
-% frequency bands within some range due to, say, a stimulus triggered
-% neuronal firing rate increase.
+% In order to decide which bands to use for extracting the broadand signal,
+% we are going to do a spectrogram analysis here to visualize how frequency
+% componenets changes over time for each electrode.
 
-% HOW TO EXTRACT BROADBAND? -----------------------------------------------
-% The point of extracting broadband here is to look at the time course of,
-% say, the increase in neuronal firing rate due to stimulus.
+dn_spectrogram_spectra('all', 100); % [may take a little while]
 
-% This code is attempting to answer the following questions, some harder
-% than the others
+%% BAND-PASS FILTER THE TIME COURSE IN EACH ELECTRODE
+bands = {}; bp = {};
 
-% 1. The bandpass filter
-%    1.1 What range of frequencies should we bandpass filters?
-%    1.2 How many bands should we use?
-%    1.3 Are the answers to the above question universal?
+% Here we are going to use two band range to extract broadband, [70, 210]
+% and [110, 210].
 
-% 2. The difference between averaging the bandpassed signals over trials
-%    before Hilbert transform, or Hilbert transform before averaging.
+% Wider range
+bands{1} = [70 90; 90 110; 110 130; 130 150; 150 170; 190 210];
+% narrower range
+bands{2} = [110 130; 130 150; 150 170; 190 210];
 
-%% QUESTION 1: HOW MANY BANDS SHOULD WE USE AND WHAT RANGE OF BANDS
+% BANDPASS FILTER THE ORIGINAL DATA ---------------------------------------
+for iband = 1 : length(bands), bp{iband} = bandpassFilter(ts, srate, bands{iband}); end
 
-bands{1} = {[60, 200], 140};
-bands{2} = {[60, 200], 70};
-bands{3} = {[60, 200], 20};
-bands{4} = {[60, 200], 10};
+%% EXTRACT BROADBAND USING THE BANDPASS FILTERED DATA
 
-% WHAT HAPPENS WHEN WE USE A DIFFERENT RANGE OF BANDS ---------------------
+bb_1 = {}; bb_2 = {}; bb_rs1 = {}; bb_rs2 = {};
 
-% The reason why we shouldn't include lower band is easier: the uniform
-% shift in frequency amplitudes due to stimulus-triggered response does not
-% apply to lower bands. The reason why we don't use only higher frequency
-% bands is not known except for the obvious that we should use all the
-% information that is valid.
+% There are multiple ways to extract broadband, here we compare between two ways:
+% (1) geomean(asb(hilbert(bp)).^2)
+% (2) geomean(abs(hilbert(whiten(bp))).^2)
 
-bands{5} = {[10, 30], 20};
-bands{6} = {[100, 200], 20};
+for iElec = 1 : nElec
+    for iband = 1 : length(bands)
+        bp_elec = squeeze(bp{iband}(:, iElec, :));
+        
+        bb_elec1 = geomean(stand_hilbert(bp_elec).^2, 2);
+        bb_elec2 = geomean(whiten_hilbert(bp_elec).^2, 2);
+        
+        % RESHAPE THE EXTRACTED BROADBAND DATA ----------------------------
+        bb_rs1{iband}(:, :, iElec) = bb_elec1(idx);
+        bb_rs2{iband}(:, :, iElec) = bb_elec2(idx);
+    end
+end
+%% VISUALIZE EXTRACTED BROADBAND AND DECIDE WHICH WAY (OF BROADBAND EXTRACTION) TO USE
 
-% EXTRACT AND COMPARE BROADBAND USING THE ABOVE BANDWIDTH ----------------
-bp = {}; bb = {}; m_bb = [];
-
-for k = 1 : length(bands)
-    nBands     = (bands{k}{1}(2) - bands{k}{1}(1))/bands{k}{2};
-    bp{k}      = squeeze(bandpassFilter(exp_ts, srate, bands{k}));
-    % take Hilbert transform 
-    bb{k}      = geomean(stand_hilbert(bp{k}).^2, 2);
-    m_bb(k, :) = mean(bb{k}(raw.idx));
+% AVERAGE OVER TRIALS BEFORE PLOTTING
+for iband = 1 : 2
+    mbb_rs1{iband} = squeeze(mean(bb_rs1{iband}));
+    mbb_rs2{iband} = squeeze(mean(bb_rs2{iband}));
 end
 
-%% VISUALIZE THE ANSWER TO QUESTION 1
+% This figure compares two ways of computing broadband, and each way with
+% two band widths. The conclusion is that the difference between the two
+% ways of computing broadband is not that big, so we will just pick the
+% simpler way (the first way). For other analyses (model fitting and
+% parameter estimating), we will do it for both frequency ranges ([70-200],
+% [100, 200]).
 
-figure (1), clf
+fg = figure (1); clf
+for iElec = 1 : nElec
+    subplot(8, 10, iElec)
+    plot(t, normBM(mbb_rs1{1}(:, iElec)), 'r-'), hold on
+    plot(t, normBM(mbb_rs1{2}(:, iElec)), 'b-'),
+    plot(t, 1 + normBM(mbb_rs2{1}(:, iElec)), 'm-'),
+    plot(t, 1 + normBM(mbb_rs2{2}(:, iElec)), 'k-'),
+    xlim([0, T]), ylim([-0.5, 2]), box off
+end
+fg.Position = [1, 2000, 2000, 2000];
 
-for k = 1 : length(bands)
-    subplot(length(bands), 1, k)
-    plot(m_bb(k, :)), axis tight
+% COMPARE SPECTROGRAM AND EXTRACTED BROADBAND TIME SERIES -----------------
+figure (100),
+for iElec = 1 : nElec
+    subplot(8, 10, iElec)
+    plot(t(201 : 600)-0.13, normBM(mbb_rs2{1}(201 : 600, iElec)).*50 + 50, 'k-', 'linewidth', 3),
+    plot(t(201 : 600)-0.13, normBM(mbb_rs2{2}(201 : 600, iElec)).*50 + 50, 'w-', 'linewidth', 3)
 end
 
-% 
-% 
-% %% (1) BANDPASS ([60, 200]) FILTER THE SIGNAL THEN LOOK AT THE TIME COURSE
-% 
-% % So it seems like the first order thing to do is to look at the time
-% % course of the band-passed signal:
-% 
-% bands  = {[40, 60], 20};
-% nBands = (bands{1}(2) - bands{1}(1))/bands{2};
-% 
-% % band-pass filter the raw time series
-% bp       = bandpassFilter(raw.ts, srate, bands);
-% exp_bp   = bp(:, exp_elec); % look at an example electrode
-% exp_bp   = exp_bp(raw.idx);
-% m_exp_bp = mean(exp_bp);
-% 
-% % hilbert-transform (intuition: compute spike rate rather than looking at the raw signals)
-% exp_bb = abs(hilbert(exp_bp));
-% m_exp_bb = mean(exp_bb, 1);
-% 
-% % visualize 
-% figure (1), clf
-% %subplot(2, 2, 1), plot(m_exp_bp, 'k-'), hold on, plot(m_exp_bb, 'r-', 'linewidth', 2), axis tight
-% 
-% %% BANDPASS FILTER THE SIGNALS
-% 
-% % Variables to change:
-% bands        = {[60, 200], 20}; % the bands are 60-80, 80-100, 100-120, 120-140,140-160,160-180,180-200
-% nbands       = 7;
-% 
-% example_elec = 1;
-% 
-% nElec = size(raw.ts, 2);
-% bp    = [];
-% 
-% % bandpass-filter the signal
-% bp = bandpassFilter(raw.ts, srate, bands);
-% 
-% % make an example band-passed signal
-% example_bp   = [];
-% 
-% for iband = 1 : nbands
-%     tmp = squeeze(bp(:, example_elec, iband));
-%     example_bp(:, :, iband) = tmp(raw.idx);
-% end
-% 
-% % VISUALIZE BAND-PASS FILTER ---------------------------------------------
-% 
-% m_examp_bp = squeeze(mean(example_bp));
-% 
-% figure (1), clf
-% for k = 1 : nbands
-%     subplot(8, 1, k)
-%     plot(m_examp_bp(:, k), 'k-'), hold on,
-%     plot(abs(hilbert(m_examp_bp(:, k))), 'r-', 'linewidth', 2)
-%     %plot(geomean(abs(hilbert(m_examp_bp(:, k))).^2, 2), 'b-', 'linewidth', 2)
-%     
-%     output(:, k) = geomean(abs(hilbert(m_examp_bp(:, k))).^2, 2);
-%     axis tight,  box off,  ylim([-1.2, 1.2]),
-% end
-% 
-% subplot(8, 1, 8), plot(sum(output, 2)), axis tight
-% 
-% %% EXTRACT BROADBAND
-% 
-% % Here, I want to extract broadband using different ways and compare the
-% % results.
-% bb = {};
-% 
-% bands = {[60, 200], 20};
-% srate = 1000;
-% 
-% for method = 1 : 5
-%    bb{method} = extractBroadband(raw.ts, srate, method, bands);
-% end
-% 
-% % EPOCH THE BROADBAND EXTRACTED -------------------------------------
-% bb_epoch = {};
-% 
-% for method = 1 : 5 % number of broadband extracting method
-%    for k = 1 : 71 % number of electrodes
-%       tmp = bb{method}(:, k);
-%       bb_epoch{method}(:, :, k) = tmp(raw.onsets);
-%    end
-% end
-% 
-% %% VISUALIZE THE OUTCOME OF DIFFERENT METHODS AND COMPARE
-% 
-% % eqaulize the baseline:
-% norm_base = @(x) x - mean(x(1 : 200));
-% norm_max  = @(x) x./max(x);
-% 
-% figure (5), clf, color_order = {'g', 'c', 'b', 'k', 'r'};
-% 
-% for k = 1 : 71
-%     subplot(8, 10, k)
-%     for method = 1 : 5
-%         to_plot = norm_max(norm_base(mean(bb_epoch{method}(:, :, k))));
-%         plot(to_plot, '-', 'color', color_order{method}), hold on
-%     end
-%     axis tight, box off
-% end
+%% SAVE FIGURE
+
+fNm1    = 'pre_extractBB_methods_bandRng';
+fNm2    = 'pre_spectrogram_ts_allstim';
+saveLoc = fullfile(dn_ECoG_RootPath, 'analysisFigures');
+
+if saveFigure,
+    printnice(1, 0, saveLoc, fNm1);
+    printnice(100, 0, saveLoc, fNm2);
+end
+
+%% SAVE DATA
+
+saveLoc = fullfile(dn_ECoG_RootPath, 'data');
+fName   = 'dn_preprocessedData.mat';
+
+if saveData
+    dt.ecog     = [];
+    dt.ecog.labels = raw.goodLabels;
+    dt.ecog.chans  = raw.goodChannels;
+    dt.ecog.bb     = bb_rs1;
+    dt.ecog.stimNm = raw.stimNames;
+    dt.ecog.imNm   = raw.imNames;
+    save(fullfile(saveLoc, fName), 'dt')
+end
