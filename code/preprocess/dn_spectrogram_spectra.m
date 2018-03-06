@@ -119,13 +119,15 @@ f = [0 : length(baseline_tRange)-1]./(length(baseline_tRange)/1000);
 
 spectra_stim = []; mspectra_stim = []; spectra_base = []; mspectra_base = [];
 
+n = size(tsRs,2)/2;
+
 for k = 1 : size(tsRs, 1)
    for iElec = 1 : nElec
       thisTS_stim = squeeze(tsRs(k, stimTrig_tRange, iElec));
-      spectra_stim(k, :, iElec) = abs(fft(thisTS_stim));
+      spectra_stim(k, :, iElec) = abs(fft(thisTS_stim))/n;
       
       thisTS_base = squeeze(tsRs(k, baseline_tRange, iElec));
-      spectra_base(k, :, iElec) = abs(fft(thisTS_base));
+      spectra_base(k, :, iElec) = abs(fft(thisTS_base))/n;
    end
 end
 % AVERAGE THE FREQUENCY COMPONENTS ACROSS STIMULI -------------------------
@@ -139,7 +141,7 @@ for iElec = 1 : nElec
     subplot(8, 10, iElec)
     loglog(f, mspectra_stim(:, iElec), 'k-', 'linewidth', 3), hold on, 
     loglog(f, mspectra_base(:, iElec), '-', 'linewidth', 3, 'color', 0.6 * ones(1, 3)),
-    set(gca, 'xtick', [50, 100, 200]), ylim([40, 10^4]), title(raw.goodChannels(iElec)), set(gca, 'fontsize', 12), 
+    set(gca, 'xtick', [50, 100, 200]), ylim(10.^[-1 1]); title(raw.goodChannels(iElec)), set(gca, 'fontsize', 12), 
     xlim([30, 200]), box off
 end
 

@@ -1,34 +1,41 @@
-function [r2, rsp, rsp_normMax] = dn_computeFineFit(prms, data, stim, t, irfType)
+function [r2, rsp] = dn_computeFineFit(prms, data, stim, t, irfType)
+% DESCRIPTION -------------------------------------------------------------
+%
+% INPUTS ------------------------------------------------------------------
+% prms    : DN model parameters. If the irfType is "uniphasic", then "prms" 
+%           contains 5 model parameters in the order of tau1, tau2, n sigma, and shift. 
+%           If the irfType is "biphasic", then 5 different model
+%           parameters are expected: tau1, weight, tau2, sigma, and shift.
+% data    : 1 x time course
+% stim    : stimulus, a time course with 1 represents contrast increment
+%           and 0 otherwise.
+% t       : time, in unit of seconf
+% irfType : can either be "uniphasic" or "biphasic"
+%
+% OUTPUTS -----------------------------------------------------------------
+% r2      : sum of the squared difference between data and model prediction
 
-% irfType: can either be "uniphasic" or "biphasic"
+%% USEFUL FUNCTION
 
-
-% fields = {'tau1', 'weight', 'tau2', 'n', 'sigma', 'shift', 'scale'};
-
-%% compute model response
-
-switch irfType
-    case 'uniphasic'
-        modelPrms = [prms(1), 0, prms(2), prms(3), prms(4), prms(5), 1];
-    case 'biphasic'
-        modelPrms = [prms(1), prms(2), prms(3), 2, prms(4), prms(5), 1];
-end
-
-% compute model response
 normMax = @(x) x./max(x);
 
-rsp         = dn_DNmodel(modelPrms, stim, t);
-rsp_normMax = normMax(dn_DNmodel(modelPrms, stim, t));
-data        = normMax(data);
+%% PRE-DEFINED VARIABLE
 
-% compute r2
-%r2 = -corr(data', rsp_normMax');
-r2 = sum((data - rsp_normMax).^2);
+data = normMax(data);
 
-%% visualize
-% % 
+%% COMPUTE MODEL PREDICTIONS
+
+prms = dn_fillDNParams(prms, irfType);
+rsp  = normMax(dn_DNmodel(prms, stim, t));
+
+%% COMPUTE R2
+
+r2 = sum((data - rsp).^2);
+
+%% VISUALIZE
+
 % figure (1), clf
-% plot(rsp_normMax, 'r-'), hold on
+% plot(rsp, 'r-'), hold on
 % plot(data, 'b-'), drawnow
 
 end

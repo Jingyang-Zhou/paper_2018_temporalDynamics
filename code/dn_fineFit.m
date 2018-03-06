@@ -1,44 +1,48 @@
-function [modelprm, modelprd, modelr2, exitflg] = dn_fineFit(data, stim, t, param, seed, irfType)
+function [prm, prd, r2, exitFlg] = dn_fineFit(data, stim, t, param, seed, irfType)
+% DESCRIPTION -------------------------------------------------------------
+% function [modelprm, modelprd, modelr2, exitflg] = dn_fineFit(data, stim, t, param, seed, irfType)
+%
+% INPUTS ------------------------------------------------------------------
+% data : nRuns x time course
+% stim : stimulus time course
+% t    : time, in unit of second
+% param: the structure that constains the upper and lower bound of the
+%        uniphasic DN model fit
+% seed : nRuns x seed values (uniphasic: tau1, tau2, n, sigma, shift)
+% irfType : 'uniphasic' or 'biphasic'
+%
+% OUTPUTS -----------------------------------------------------------------
+% prm
+% prd
+% r2
+% exitFlg
 
+%% PRE-DEFINED / EXTRACTED PARAMETERS
 
-%% prepare to fit model
+nBoots  = size(data, 1);
+options = optimset('MaxFunEvals', 5000);
 
-switch irfType
-    case 'uniphasic'
-        %lb = param.lb;
-        %ub = param.ub;
-        lb = [0.07, 0.07, 0, 0.01, 0.001];
-        ub = [1, 1, 6, 1, 0.2];
-    case 'biphasic'
-        %lb = param.bilb;
-        %ub = param.biub;
-        lb   = [0, 0, 0, 0.001, 0];
-        ub   = [1, 1, 1, 1, 0.5];
-end
+%% SET UP LOWER AND UPPWER BOUND FOR THE MODEL FIT
 
-%% fit model
+lb = param.lb; ub = param.ub;
 
-modelprm = []; modelprd = []; modelr2 = [];
+%% FIT THE DN MODEL TO THE DATA
 
-options = optimset('MaxFunEvals', 1000);
-
-for k = 1 : size(data, 1)
-    [modelprm(k, :), ~, exitflg(k)] = fminsearchbnd(@(x)dn_computeFineFit(x, data(k, :), stim, t, irfType), seed(k, :), lb, ub, options);
-   
-    % compute model prediction
-    switch irfType
-        case 'uniphasic'
-            prms = [modelprm(k, 1), 0, modelprm(k, 2), modelprm(k, 3), modelprm(k, 4), modelprm(k, 5), 1];
-        case 'biphasic'
-            prms = [modelprm(k, 1), modelprm(k, 2), modelprm(k, 3), 2, modelprm(k, 4), modelprm(k, 5), 1];
-    end
-    modelprd(k, :) = dn_DNmodel(prms, stim, t);
-
-    % compute model r2
-    modelr2(k) = corr(modelprd(k, :)', data(k, :)').^2;
-   
-    % track progress
-    if rem(k, 50) == 0, disp(sprintf('dn_FineFit: %d', k)), end
+for iBoot = 1 : nBoots
+    % FIT DN MODEL TO THE DATA --------------------------------------------
+    thisdt = data(iBoot, :); thisSd = seed(iBoot, :);
+    
+    [prm(iBoot, :), ~, exitFlg(iBoot)] = ...
+        fminsearchbnd(@(x)dn_computeFineFit(x, thisdt, stim, t, irfType), thisSd, lb, ub, options);
+    % COMPUTE MODEL PREDICTION --------------------------------------------
+    thisprm       = dn_fillDNParams(prm(iBoot, :), irfType);
+    prd(iBoot, :) = dn_DNmodel(thisprm, stim, t);
+    
+    % COMPUTE MODEL R2 ----------------------------------------------------
+    r2(iBoot) = corr(prd(iBoot, :)', data(iBoot, :)').^2;
+    
+   % TRACK FITTING PROGRESS -----------------------------------------------     
+   if rem(iBoot, 50) == 0, disp(sprintf('dn_FineFit: %d', iBoot)), end
 end
 
 end

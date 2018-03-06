@@ -8,7 +8,7 @@ stim = ones(1, length(t));
 
 % compute model responses
 for k = 1 : size(prm, 1)
-   [~, ~, rsp(k, :)] = dn_computeFineFit(prm(k, :), stim, stim, t, irfType);
+   [~, rsp(k, :)] = dn_computeFineFit(prm(k, :), stim, stim, t, irfType);
    
    % compute time to peak
    derivedPrm.t2pk(k) = find(rsp(k, :) == max(rsp(k, :)));

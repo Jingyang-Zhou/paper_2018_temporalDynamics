@@ -1,7 +1,7 @@
 function [normrsp, linrsp, numrsp, demrsp] = dn_DNmodel(param, stim, t)
 %
 % function normrsp = dn_DNmodel(param, stim, t)
-% INPUTS :
+% INPUTS  -----------------------------------------------------------------
 % params : 6 fields.
 %          tau1 -- irf peak time, in unit of second
 %          weight -- the weight in the biphasic irf function, set weight to
@@ -12,53 +12,58 @@ function [normrsp, linrsp, numrsp, demrsp] = dn_DNmodel(param, stim, t)
 %          shift -- time between stimulus onset and when the signal reaches
 %          the cortex, in unit of second
 %          scale -- response gain.
-% OUTPUTS:
+% OUTPUTS -----------------------------------------------------------------
 % normrsp: normalization response.
 
 % 04/05 I added parameter field "n", 
 
-%% pre-defined variables
+%% PRE-DEFINED /EXTRACTED VARIABLES
 
-x   = [];
-%x.n = 2;
+x       = []; % a struct of model parameteres
+
+t_lth   = length(t);
+dt      = t(2) - t(1);
 
 normSum = @(x) x./sum(x);
 
-%% initiate model fitting
+%% SET UP THE MODEL PARAMETERS
 
 fields = {'tau1', 'weight', 'tau2', 'n', 'sigma', 'shift', 'scale'};
 x      = toSetField(x, fields, param);
 
-%% compute response
+%% COMPUTE THE IMPULSE RESPONSE FUNCTION
 
-% compute irf
-irf1 = gammaPDF(t, x.tau1, 2);
-irf2 = gammaPDF(t, x.tau1*1.5, 2);
-irf  = irf1 - x.weight.* irf2;
+% HERE I ASSUME THAT THE NEGATIVE PART OF THE IMPULSE RESPONSE HAS A TIME
+% CONSTANT 1.5 TIMES THAT OF THE POSITIVE PART OF THE IMPULSE RESPONSE
+if x.tau1 > 0.5, warning('tau1>1, the estimation for other parameters may not be accurate'); end
+    
+t_irf   = dt : dt : 5;
 
-% compute pool filter
-irf_norm = normSum(exp(-t/x.tau2));
+irf_pos = gammaPDF(t_irf, x.tau1, 2);
+irf_neg = gammaPDF(t_irf, x.tau1*1.5, 2);
+irf     = irf_pos - x.weight.* irf_neg;
 
-ctLth = length(irf);
+%% COMPUTE THE DELAYED REPSONSE FOR THE NORMALIZATION POOL
 
+irf_norm = normSum(exp(-t_irf/x.tau2));
+
+%% COMPUTE THE NORMALIZATION RESPONSE
 
 for istim = 1 : size(stim, 1)
-    % modify stimulus based on shift
-    dt        = t(2) - t(1);
+    % ADD SHIFT TO THE STIMULUS -------------------------------------------
     sft       = round(x.shift * (1/dt));
     stimtmp   = padarray(stim(istim, :), [0, sft], 0, 'pre');
     stim(istim, :) = stimtmp(1 : size(stim, 2));
     
-    % compute linear response
-    linrsp(istim, :)  = convCut(stim(istim, :), irf, ctLth);
-    % compute normalization pool response
-    poolrsp(istim, :) = convCut(linrsp(istim, :), irf_norm, ctLth);
-    % compute numerator:
+    % COMPUTE THE NORMALIZATION NUMERATOR ---------------------------------
+    linrsp(istim, :)  = convCut(stim(istim, :), irf, t_lth);
     numrsp(istim, :)  = linrsp(istim, :).^x.n;
-    % compute denominator:
+    
+    % COMPUTE THE NORMALIZATION DENOMINATOR -------------------------------
+    poolrsp(istim, :) = convCut(linrsp(istim, :), irf_norm, t_lth);
     demrsp(istim, :)  = x.sigma.^x.n + poolrsp(istim, :).^x.n;
     
-    % compute normalization response
+    % COMPUTE HTE NORMALIZATION RESPONSE
     normrsp(istim, :) = x.scale.*(numrsp(istim, :)./demrsp(istim, :));
 end
 

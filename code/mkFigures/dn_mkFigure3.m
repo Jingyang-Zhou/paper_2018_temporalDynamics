@@ -2,7 +2,7 @@
 
 %% load data
 
-dataLoc = fullfile(temporalRootPath, 'data');
+dataLoc = fullfile(dn_ECoG_RootPath, 'data');
 fname = 'dn_data.mat';
 
 a    = load(fullfile(dataLoc, fname));
@@ -12,7 +12,7 @@ nboots = 100;
 nrois  = 6;
 
 param = dn.param;
-%param = param(dn.exitflg, :);
+%param = param(dn.exitflg, :).bbts
 
 rois = {'V1', 'V2', 'V3', 'LA', 'VA', 'DA'};
 
@@ -95,4 +95,47 @@ for k = 1 : length(rois)
     set(gca, 'xaxislocation', 'origin', 'xtick', [0.2, 0.7], 'xticklabel', [0, 0.5])
     
     xlim([0, max(t)]), ylim([-1, 17]), box off
+end
+
+
+%% Plot model fits on one graph
+
+
+% plot data
+backColor = 1*[1 1 1];
+
+figure (4), clf; set(gcf, 'Color', backColor)
+set(gca, 'xaxislocation', 'origin', ...'xtick', [0.2, 0.7], 'xticklabel', [0, 0.5], ...
+    'Color', backColor, 'FontSize', 20);     hold on
+
+for ii = 1:2 % 1 is main plot, 2 is inset
+    
+    if ii == 2 
+        axes('Position',[.5 .6 .25 .3]); set(gca, 'Color', backColor); hold on; 
+    end
+    
+    xlim([0, max(t)]), ylim([-.1, 1]), box off; 
+    
+    colors = parula(length(rois)+1);
+    for k = 1 : length(rois)
+        
+        % plot model prediction
+        idx = (k - 1) * 100 + 1 : k * 100;
+        m1 = median(dn.prd(idx, :).*dn.param(idx, 6));
+        m1 = m1 ./ max(m1);
+        %s1 = prctile(dn.prd(idx, :).*dn.param(idx, 6), [25, 75]);
+        %shadedErrorBar(t, m1, [m1-s1(1, :); s1(2, :) - m1], 'r-')
+        plot(t, m1, '-', 'linewidth', 2, 'Color', colors(k,:)),
+    end
+    switch ii
+        case 1 % main plot
+            set(gca, 'xtick', [0.2, 0.7], 'xticklabel', [0, 0.5])
+            xlim([0.1 1.3])
+            patch([0.2, 0.7, 0.7, 0.2], [0, 0, 1, 1], 'k', 'facealpha', 0.05)
+            legend(rois, 'Location', 'EastOutside')
+
+        case 2 % inset
+            axis([0.28 .4 .8 1]); 
+            set(gca, 'XTick', 0.3:.05:.4, 'XTickLabel', (0.3:.05:.4) - .2);
+    end
 end

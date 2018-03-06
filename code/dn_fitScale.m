@@ -1,14 +1,28 @@
-function scale = dn_fitScale(data, prm, stim, t, irfType)
+function scale = dn_fitScale(data, prd)
+% DESCRIPTION -------------------------------------------------------------
+% function scale = dn_fitScale(data, prm, stim, t, irfType)
+%
+% INPUTS ------------------------------------------------------------------
+% param:
+% data: nBoots x time course
+% stim:
+% t: 
+% irfType: 'uniphasic' and 'biphasic'
+%
+% OUTPUTS -----------------------------------------------------------------
+% scale:
 
-% It should just be a linear regression instead of a fit
+%% USEFUL FUNCTIONS
 
-%% compute the scale for 
+normMax = @(x) x./max(x);
 
-for k = 1 : size(data, 1)
-    % compute model prediction
-    [~, prd(k, :)] = dn_computeFineFit(prm(k, :), data(k, :), stim, t, irfType);
+%% COMPUTE SCALE
+
+for k = 1 : size(data, 1)  
+    % NORMALIZE THE PREDICTIONS
+    prd(k, :)  = normMax(prd(k, :));
     
-    % compute the scale
+    % COMPUTE THE SCALE
     scale(k) = regress(data(k, :)', prd(k, :)');
 end
 
