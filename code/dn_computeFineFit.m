@@ -34,7 +34,7 @@ r2 = sum((data - rsp).^2);
 
 %% VISUALIZE
 
-% figure (1), clf
+% figure (999), clf
 % plot(rsp, 'r-'), hold on
 % plot(data, 'b-'), drawnow
 

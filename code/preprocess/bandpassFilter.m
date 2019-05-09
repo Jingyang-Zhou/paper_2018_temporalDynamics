@@ -1,7 +1,17 @@
 function bp = bandpassFilter(x, srate, bands)
+% function bp = bandpassFilter(x, srate, bands)
+%
+% INPUTS ------------------------------------------------------------------
+% x:      time course x num.electrodes
+% srate : sampling rate
+% bands:
+%
+% OUTPUTS -----------------------------------------------------------------
+%
+%%
 
-if ~exist('srate', 'var')  || isempty(srate),  srate = 1000; end
-if ~exist('bands', 'var')  || isempty(bands),  bands = {[60 200], 20}; end
+% if ~exist('srate', 'var')  || isempty(srate),  srate = 1000; end
+% if ~exist('bands', 'var')  || isempty(bands),  bands = {[60 200], 20}; end
 
 if isa(bands, 'cell')
     % Entire range for broadband
@@ -11,8 +21,8 @@ if isa(bands, 'cell')
     band_w   = bands{2};
     
     % All bins
-    lb       = band_rg(1):band_w:band_rg(2)-band_w;
-    ub       = lb+band_w;
+    lb      = band_rg(1):band_w:band_rg(2)-band_w;
+    ub      = lb+band_w;
     bands   = [lb; ub]';
 end
 

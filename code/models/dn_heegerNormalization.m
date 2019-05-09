@@ -30,7 +30,7 @@ for k = 1 : size(stim, 1)
     
     for ii = 2:length(t)
         R(ii) = max(L(ii) * F(ii-1),0)^params.n;
-        G(ii) = (1-params.alpha) * G(ii-1) + params.alpha*R(ii);
+        G(ii) = (1-params.alpha) * G(ii-1) + params.alpha * R(ii);
         G(ii) = min(G(ii), K);
         F(ii) = sqrt(K-G(ii-1)) / params.sigma;
     end

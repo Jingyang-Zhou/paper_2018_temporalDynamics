@@ -5,12 +5,6 @@
 saveFigure = 1;
 saveData   = 0;
 
-%% PREDEFINED VARIABLES
-
-prm.ecog.roiNm = {'V1', 'V2', 'V3', 'lateral', 'ventral', 'dorsal'};
-prm.ecog.selThresh = 0.5;
-prm.ecog.tBase     = 1 : 200;
-
 %% USEFUL FUNCTIONS
 
 normBase = @(x, range) x - mean(x(range));
@@ -29,6 +23,14 @@ prmFileNm = 'dn_params.mat';
 b    = load(fullfile(dataLoc, prmFileNm));
 prm  = b.prm;
 
+%% PREDEFINED VARIABLES
+
+prm.ecog.roiNm     = {'V1', 'V2', 'V3', 'anterior'};
+prm.ecog.tBase     = 1 : 200;
+prm.ecog.selThresh = 0.5;
+
+t = b.prm.ecog.t;
+
 %% DERIVED VARIABLES
 
 label  = data.labels;
@@ -46,7 +48,7 @@ prm.ecog.stim(201 : 700) = 1;
 
 roiNms = {'V1', 'V2', 'V3', 'V3A', 'hV4', 'VO', 'LO', 'TO', 'IPS'};
 nrois  = length(roiNms);
-roiIdx = {1, 2, 3, 7, [5, 6], [4, 8]};
+roiIdx = {1, 2, 3, [4, 5, 6, 7, 8]};
 
 combined_nrois = length(roiIdx);
 
@@ -109,9 +111,6 @@ for iElec = 1 : nElec
     mbb{1}(:, iElec) = mbb{1}(:, iElec)/m_baseline(iElec);
     % SUBTRACT THE BASELINE
     mbb{1}(:, iElec) = mbb{1}(:, iElec) - 1;
-    
-    % ALTERNATIVELY (OBSOLETE), USE ABSOLUTE SIGNAL RATHER THAN %CHANGE
-    %  mbb{1}(:, iElec) = mbb{1}(:, iElec) - baseline;
 end
 
 %% SELECT ELECTRODE BASED ON THE MAX OF THE STIMULUS-TRIGGERED PERCENTAGE CHANGE SIGNAL
@@ -152,7 +151,7 @@ for iElec = 1 : nElec
     subplot(8, 10, iElec),
     plot(mbb{1}(:, iElec), 'k-', 'linewidth', 2), xlim([1, 1204]), hold on,
     plot([1, 1204], [prm.ecog.selThresh, prm.ecog.selThresh], 'r-')
-    ylim([-2, 10]), box off, set(gca, 'xtick', ''), title(data.chans(iElec))
+    ylim([-0.3, 8]), box off, set(gca, 'xtick', ''), title(data.chans(iElec))
     if select_idx(iElec) == 1, set(gca, 'color', 'y'), end, set(gca, 'fontsize', 12)
 end
 
@@ -189,12 +188,10 @@ for iroi = 1 : nrois
 end
 
 % COMBINE INDICES BECAUSE WE DONT' HAVE ENOUGH ELECTRODES IN THE MORE ANTERIOR REGIONS
-% roiIdx = {1, 2, 3, 7, [5, 6], [4, 8]};
 cb_nmIdx = {};
 cb_nmIdx(1:3) = nm_idx(1:3);
-cb_nmIdx(4)   = nm_idx(7);
-cb_nmIdx{5}   = [nm_idx{5}, nm_idx{6}];
-cb_nmIdx{6}   = [nm_idx{4}, nm_idx{8}];
+cb_nmIdx{4}   = [nm_idx{4}, nm_idx{5}, nm_idx{6}, nm_idx{7}, nm_idx{8}];
+
 
 % DISPLAY ROI NAMES FOR THE SAKE OF CHECKING ------------------------------
 display('[dn_chooseElectrodes]: Electrode labels in each ROI:')
@@ -202,6 +199,7 @@ for iroi = 1 : combined_nrois
     disp(prm.ecog.roiNm{iroi})
     disp(select_Labels(cb_nmIdx{iroi}))
 end
+
 %% COMBINE ROI BROADBAND TIME COURSES AND ELECTRODE INDICES
 
 final_bbts = {};
@@ -220,9 +218,9 @@ for iroi = 1 : length(cb_nmIdx)
     end
 end
 
-figure (3), clf
+fg3 = figure (3); clf
 for iroi = 1 : length(cb_nmIdx)
-    subplot(2, 3, iroi)
+    subplot(1, 4, iroi)
     to_plot = normMax(mean(nm_final_bbts{iroi}, 2));
     plot(to_plot, 'k-', 'linewidth', 2), xlim([0, 1204]), hold on
     if iroi == 1,
@@ -232,8 +230,11 @@ for iroi = 1 : length(cb_nmIdx)
     plot([max_v1, max_v1], [0, max(to_plot)], 'r-'),
     plot([0, 1204], [[off_v1], off_v1], 'r-')
     plot([700, 700], [0, 1], 'r-'), ylim([-0.1, 1])
-    set(gca, 'xaxislocation', 'origin'), box off
+    set(gca, 'xaxislocation', 'origin', 'xtick', [200, 700], 'xticklabel', [0, 0.5], 'fontsize', 14, 'ytick', [0, 1]), box off
+    title(prm.ecog.roiNm{iroi})
 end
+
+fg3.Position = [0, 250, 2000, 250];
 
 %% SAVE FIGURES
 
@@ -246,6 +247,10 @@ if saveFigure
     % save the figure that shows the signal to noise ratio in the baseline
     fg100Nm = 'pre_sig2noise_baseline';
     printnice(100, 0, figLoc, fg100Nm);
+    
+    % save Figure 3: average of selected electrodes
+    fg3Nm = 'pre_averagedSelectedElectrodes';
+    printnice(3, 0, figLoc, fg3Nm);
 end
 
 %% SAVE DATA

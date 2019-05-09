@@ -2,7 +2,7 @@
 
 %% FIGURE SAVING KNOB
 
-saveFigures = 1;
+saveFigures = 0;
 
 %% USEFUL FUNCTIONS
 
@@ -134,9 +134,9 @@ fgs4 =figure (100); clf
 for iroi = 1 : 3
    for k = 1 : size(bbts{iroi}, 2)
       subplot(3, 15, (iroi-1) * 15 + k)
-      if bi.ecc.elecIdx{iroi}(k) == 1, patch([-0.2, 1, 1, -0.2], [0, 0, 1, 1], [1, 0.9, 0.9]), 
-      elseif bi.ecc.elecIdx{iroi}(k) == 2, patch([-0.2, 1, 1, -0.2], [0, 0, 1, 1], [0.9, 0.9, 1]),
-      else  patch([-0.2, 1, 1, -0.2], [0, 0, 1, 1], [0.9, 1, 0.9]),
+      if bi.ecc.elecIdx{iroi}(k) == 1, patch([-0.2, 1, 1, -0.2], [0, 0, 1, 1], [1, 0.9, 0.9]), % red
+      elseif bi.ecc.elecIdx{iroi}(k) == 2, patch([-0.2, 1, 1, -0.2], [0, 0, 1, 1], [0.9, 0.9, 1]), % blue
+      else  patch([-0.2, 1, 1, -0.2], [0, 0, 1, 1], [0.9, 1, 0.9]), % green
       end
       hold on
       patch([0, 0.5, 0.5, 0], [0, 0, 1, 1], 0.9 * ones(1, 3)), 

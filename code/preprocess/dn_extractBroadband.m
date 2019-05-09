@@ -17,8 +17,8 @@
 
 %% SAVE KNOBs
 
-saveFigure = 1;
-saveData   = 1;
+saveFigure = 0;
+saveData   = 0;
 
 %% LOAD, MAKE AND SAVE RAW DATA
 
@@ -68,9 +68,11 @@ bands = {}; bp = {};
 % and [110, 210].
 
 % Wider range
-bands{1} = [70 90; 90 110; 110 130; 130 150; 150 170; 190 210];
+bands{1} = [70 80; 80 90; 90 100; 100 110; 130 140; 140 150; 150 160; 160 170; 190 200; 200 210];
+
 % narrower range
-bands{2} = [110 130; 130 150; 150 170; 190 210];
+%bands{2} = [110 130; 130 150; 150 170];% 190 210];`
+bands{2} = [70 90; 90 110; 110 130; 130 150; 150 170];% 190 210];
 
 % BANDPASS FILTER THE ORIGINAL DATA ---------------------------------------
 for iband = 1 : length(bands), bp{iband} = bandpassFilter(ts, srate, bands{iband}); end
@@ -88,7 +90,9 @@ for iElec = 1 : nElec
         bp_elec = squeeze(bp{iband}(:, iElec, :));
         
         bb_elec1 = geomean(stand_hilbert(bp_elec).^2, 2);
-        bb_elec2 = geomean(whiten_hilbert(bp_elec).^2, 2);
+        %bb_elec1 = sum(stand_hilbert(bp_elec), 2);
+        %bb_elec2 = geomean(whiten_hilbert(bp_elec).^2, 2);
+        bb_elec2 = sum(whiten_hilbert(bp_elec).^2, 2);
         
         % RESHAPE THE EXTRACTED BROADBAND DATA ----------------------------
         bb_rs1{iband}(:, :, iElec) = bb_elec1(idx);
@@ -114,20 +118,21 @@ fg = figure (1); clf
 for iElec = 1 : nElec
     subplot(8, 10, iElec)
     plot(t, normBM(mbb_rs1{1}(:, iElec)), 'r-'), hold on
-    plot(t, normBM(mbb_rs1{2}(:, iElec)), 'b-'),
-    plot(t, 1 + normBM(mbb_rs2{1}(:, iElec)), 'm-'),
-    plot(t, 1 + normBM(mbb_rs2{2}(:, iElec)), 'k-'),
-    xlim([0, T]), ylim([-0.5, 2]), box off
+    % plot(t, normBM(mbb_rs1{2}(:, iElec)), 'b-'),
+    plot(t, normBM(mbb_rs2{1}(:, iElec)), 'k-'),
+    % plot(t, 1 + normBM(mbb_rs2{2}(:, iElec)), 'k-'),
+    xlim([0, T]), ylim([-0.5, 1]), box off
 end
+subplot(8, 10, 1), %legend('M1 B1', 'M1 B2', 'M2 B1', 'M2 B2')
 fg.Position = [1, 2000, 2000, 2000];
 
 % COMPARE SPECTROGRAM AND EXTRACTED BROADBAND TIME SERIES -----------------
-figure (100),
-for iElec = 1 : nElec
-    subplot(8, 10, iElec)
-    plot(t(201 : 600)-0.13, normBM(mbb_rs2{1}(201 : 600, iElec)).*50 + 50, 'k-', 'linewidth', 3),
-    plot(t(201 : 600)-0.13, normBM(mbb_rs2{2}(201 : 600, iElec)).*50 + 50, 'w-', 'linewidth', 3)
-end
+% figure (100),
+% for iElec = 1 : nElec
+%     subplot(8, 10, iElec)
+%     plot(t(201 : 600)-0.13, normBM(mbb_rs2{1}(201 : 600, iElec)).*50 + 50, 'k-', 'linewidth', 3),
+%     plot(t(201 : 600)-0.13, normBM(mbb_rs2{2}(201 : 600, iElec)).*50 + 50, 'w-', 'linewidth', 3)
+% end
 
 %% SAVE FIGURE
 
@@ -146,7 +151,7 @@ saveLoc = fullfile(dn_ECoG_RootPath, 'data');
 fName   = 'dn_preprocessedData.mat';
 
 if saveData
-    dt.ecog     = [];
+    
     dt.ecog.labels = raw.goodLabels;
     dt.ecog.chans  = raw.goodChannels;
     dt.ecog.bb     = bb_rs1;

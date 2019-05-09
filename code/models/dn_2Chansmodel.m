@@ -1,8 +1,9 @@
 function output = dn_2Chansmodel(params, stimulus, t, dt)
+% function output = dn_2Chansmodel(params, stimulus, t, dt)
 
 % INPUTS : 
-% params have fields for two beta weights, b1 and b2, and a constant
-% epsilon for scaling
+% params have fields for two beta weights, b1 and b2
+
 %% useful functions
 
 makeIRF = @(A, B, C, t)(t/A).^8 .* exp(-t/A) - 1 / B .* (t/C).^9 .* exp(-t/C);
@@ -41,9 +42,9 @@ for k = 1 : size(stimulus, 1)
     fcomp(k, :)  = convCut(firf, stimulus(k, :), length(stimulus));
     pcomp(k, :)  = convCut(pirf, stimulus(k, :), length(stimulus)).^2;
     % output(k, :) = normMax(params.b1 *fcomp + params.b2 * pcomp + params.epsilon);
-    output(k, :) = params.b1 *fcomp + params.b2 * pcomp + params.epsilon;
+    output(k, :) = params.b1 *fcomp + params.b2 * pcomp;
     % smooth output
-    output(k, :) = normMax(conv(output(k, :), ker, 'same'));
+    output(k, :) = conv(output(k, :), ker, 'same');
     % shift output
     output(k, :) = [zeros(1, shift), output(k, 1 : length(t) - shift)];
 end

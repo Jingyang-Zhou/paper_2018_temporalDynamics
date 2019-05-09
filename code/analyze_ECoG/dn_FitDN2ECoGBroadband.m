@@ -12,19 +12,23 @@ b = load(fullfile(dataLoc, prm_fName));
 
 %% PRE-DEFINED PARAMETERS
 
-nBoots  = 100; % bootstrap sample size
-irfType = 'uniphasic';
-prm     = b.prm;
+nBoots   = 100; % bootstrap sample size
+irfType  = 'uniphasic';
+prm      = b.prm;
 
 %% DERIVED PARAMETERS
 
-bbts   = a.dt.ecog.bbts_roi;
-t_base = prm.ecog.tBase;  % baseline time course
-t      = prm.ecog.t;
-stim   = prm.ecog.stim;
-dn     = prm.ecog.dn;
+bbts    = a.dt.ecog.bbts_roi;
+t       = prm.ecog.t;
+stim    = prm.ecog.stim;
+dn      = prm.ecog.dn;
 
-nrois = length(bbts);
+nrois   = length(bbts);
+
+% normalize each broadband time course to its max
+for iroi = 1 : nrois
+   bbts{iroi} = normMax(bbts{iroi}); 
+end
 
 %% BOOTSTRAP THE ECoG DATA
 
@@ -46,7 +50,10 @@ seed = [dn.seed, zeros(size(dn.seed, 1), 1)];
 
 %% COMPUTE SUMMARY METRICS
 
-dn.summaryMetrics = dn_computeDerivedParams(dn.param, irfType);
+zeroshift_param = dn.param;
+zeroshift_param(:, 5) = 0; 
+
+dn.summaryMetrics = dn_computeDerivedParams(zeroshift_param, irfType);
 
 %% SAVE MODEL PARAMETERS
 

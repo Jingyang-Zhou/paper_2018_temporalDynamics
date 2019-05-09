@@ -6,7 +6,7 @@ t_preStim = 1 : 200;
 
 %% load data and parameters
 
-dataLoc = fullfile(temporalRootPath, 'data');
+dataLoc = fullfile(dn_ECoG_RootPath, 'data');
 fName   = 'dn_data.mat';
 a       = load(fullfile(dataLoc, fName));
 
@@ -40,7 +40,7 @@ irfType = 'uniphasic';
 [dn.modelSeed, dn.seedR2] = dn_gridFit(data, param, stim, t, irfType);
 
 %% fine fit
-% temporary $$$$$$$$$$$___$$__$_$__$_$_$__
+% temporary 
 dn = a.dn;
 
 seed = [dn.modelSeed, zeros(size(dn.modelSeed, 1), 1)];

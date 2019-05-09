@@ -46,13 +46,11 @@ if notDefined('tau'), tau = 1; end
 if notDefined('n'), n = 2; end
 
 % After Boynton et al.  See boyntonHIRF in mrVista
-nCurves = length(tau);
-for ii=1:nCurves
-    % y = (t ./ tau(ii)).^(n-1) .* exp(-t ./ tau(ii)) ;%/ (tau(ii)*factorial(n - 1));
-    
-    y = t.*exp(-t./tau(ii)); 
-    y = y/sum(y);
-end
+%y = (t ./ tau).^(n-1) .* exp(-t ./ tau) ;%/ (tau*factorial(n - 1));
+y = (t ./ tau).^(n-1) .* exp(-t ./ tau) / (tau*factorial(n - 1));
+%y = (t ./ tau).^(n-1) .* exp(-t ./ tau);% / (tau*factorial(n - 1));
+y = t.*exp(-t./tau);
+y = y/sum(y);
 
 % if y(end)/max(y) > 0.1
 %     warning('The total duration (t) is probably too short.');
