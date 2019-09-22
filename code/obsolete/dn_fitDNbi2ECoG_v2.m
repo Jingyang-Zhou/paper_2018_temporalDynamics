@@ -37,7 +37,7 @@ ecog    = a.dt.ecog;
 ecogPrm = b.prm.ecog;
 
 ElecIdx = ecog.elec_roi;
-ecc     = ecog.prf.ecc;
+ecc     = ecog.ecc;
 bbts    = ecog.bbts_roi;
 nrois   = length(ecc);
 
@@ -65,7 +65,7 @@ end
 bi.ecc.bin     = bin;
 bi.ecc.elecIdx = elec_eccIdx;
 
-%% GROUP ELECTRODES NAD THEIR TIME COURSES ACCORDINGLY
+%% GROUP ELECTRODES AND THEIR TIME COURSES ACCORDINGLY
 
 bi.ecc_bbts = [];
 
@@ -110,48 +110,48 @@ fig2Nm = 'ana_eccBinBroadbandPerRoi';
 printnice(2, 0, figLoc,fig2Nm);
 
 %% COMPUTE OFFSET TRANSIENT INDEX
-
-OTI = [];
-
-x0 = 0.01;
-
-% Fit an exponential decay to [0.2 0.7] and [1, 1.2] time range of the
-% data. Then compute the difference between the data and the model
-% prediction.
-fit_rng = [201 : 700, 1000 : 1204];
-
-for iroi = whichRois
-    for iecc = 1 : 3
-        tofit = normMax(squeeze(bi.ecc_bbts(iroi, iecc, :))');
-        if ~isnan(tofit),
-            % find maximum
-            maxIdx(iroi, iecc) = find(tofit == max(tofit), 1);
-            fit_rng = [maxIdx(iroi, iecc) : 700, 1000 : 1204];
-            OTI.prm(iroi, iecc) = fminsearch(@(x) dn_fitExponential(x, tofit, fit_rng, t), x0);
-            OTI.prd{iroi, iecc} = exp(-t(maxIdx(iroi, iecc) : end)./OTI.prm(iroi, iecc));
-            OTI.prd{iroi, iecc} = normMax(OTI.prd{iroi, iecc});
-        end
-    end
-end
+% 
+% OTI = [];
+% 
+% x0 = 0.01;
+% 
+% % Fit an exponential decay to [0.2 0.7] and [1, 1.2] time range of the
+% % data. Then compute the difference between the data and the model
+% % prediction.
+% fit_rng = [201 : 700, 1000 : 1204];
+% 
+% for iroi = whichRois
+%     for iecc = 1 : 3
+%         tofit = normMax(squeeze(bi.ecc_bbts(iroi, iecc, :))');
+%         if ~isnan(tofit),
+%             % find maximum
+%             maxIdx(iroi, iecc) = find(tofit == max(tofit), 1);
+%             fit_rng = [maxIdx(iroi, iecc) : 700, 1000 : 1204];
+%             OTI.prm(iroi, iecc) = fminsearch(@(x) dn_fitExponential(x, tofit, fit_rng, t), x0);
+%             OTI.prd{iroi, iecc} = exp(-t(maxIdx(iroi, iecc) : end)./OTI.prm(iroi, iecc));
+%             OTI.prd{iroi, iecc} = normMax(OTI.prd{iroi, iecc});
+%         end
+%     end
+% end
 
 %% VISUALIZE THE EXPONENTIAL PREDICTION
 
-figure (3), clf
-
-for iroi = whichRois
-    subplot(1, 3, iroi)
-    for iecc = 1 : 3
-        dt2plot = normMax(squeeze(bi.ecc_bbts(iroi, iecc, :)));
-        plot(t, dt2plot + iecc, 'k-', 'linewidth', 2), hold on
-        % PLOT EXPONENTIAL  PREDICTION
-        if ~isempty(OTI.prd{iroi, iecc})
-            thismax = maxIdx(iroi, iecc);
-            rng = thismax : length(t);
-            plot(t(rng), iecc + OTI.prd{iroi, iecc}, 'r', 'linewidth', 2)
-        end
-    end
-    axis tight, box off
-end
+% figure (3), clf
+% 
+% for iroi = whichRois
+%     subplot(1, 3, iroi)
+%     for iecc = 1 : 3
+%         dt2plot = normMax(squeeze(bi.ecc_bbts(iroi, iecc, :)));
+%         plot(t, dt2plot + iecc, 'k-', 'linewidth', 2), hold on
+%         % PLOT EXPONENTIAL  PREDICTION
+%         if ~isempty(OTI.prd{iroi, iecc})
+%             thismax = maxIdx(iroi, iecc);
+%             rng = thismax : length(t);
+%             plot(t(rng), iecc + OTI.prd{iroi, iecc}, 'r', 'linewidth', 2)
+%         end
+%     end
+%     axis tight, box off
+% end
 
 %% THE SECOND WAY TO COMPUTE THE OFFSET RESPONSE INDEX: FIT THE DN MODEL TO THE WHOLE TIME COURSE
 trimIdx = 1 : 700; stimTrim = stim(trimIdx); tTrim = t(trimIdx); irfType = 'uniphasic';

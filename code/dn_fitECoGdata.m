@@ -61,4 +61,4 @@ dn.derivedPrm = dn_computeDerivedParams(dn.param, irfType);
 
 dn_biphasic = a.dn_biphasic;
 
-save(fullfile(dataLoc, fName), 'bsData', 'param', 'raw', 'dn', 'dn_biphasic')
+save(fullfile(dataLoc, fName), 'bsData', 'param', 'raw', 'dn', 'dn_uniphasic')

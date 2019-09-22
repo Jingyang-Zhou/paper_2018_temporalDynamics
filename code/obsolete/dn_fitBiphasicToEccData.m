@@ -9,7 +9,7 @@
 
 %% load data
 
-dataLoc = fullfile(temporalRootPath, 'data');
+dataLoc = fullfile(dn_ECoG_RootPath, 'data');
 fName   = 'dn_data.mat';
 
 a       = load(fullfile(dataLoc, fName));

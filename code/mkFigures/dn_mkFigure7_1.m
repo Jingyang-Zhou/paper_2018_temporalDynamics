@@ -24,7 +24,7 @@ stim(4301 : 4800) = 1;
 
 % last, stimulus with different contrast
 stim(6501 : 7000) = 0.05;
-stim(7501 : 8000) = 0.1;
+stim(7501 : 8000) = 0.2;
 stim(8501 : 9000) = .5;
 
 normMax = @(x) x ./max(x);
@@ -147,33 +147,3 @@ dn = dn_DNmodel(prm, stim, t);
 figure (1), subplot(7, 1, 7), cla, plot(t, normMax(dn), 'r-', 'linewidth', 2.5), hold on, plot(t, normMax(I), 'k-'),  box off, axis tight
 title('DN model'),  set(gca, 'fontsize', 14)
 %subplot(4, 2, 8), plot(t, g),
-
-%% GLM (resursive LNP model)
-
-% irf  = gammaPDF(t, 0.05, 2)-0.6*gammaPDF(t, 0.08, 2);
-% Stim = [];
-% Stim = padarray(stim, [0, 1000],0, 'pre'); 
-% Stim = padarray(Stim, [0, 1000], 0, 'post');
-% I    = convCut(Stim, irf, length(Stim));
-% 
-% normalize = @(x)x./norm(x);
-% 
-% fb_lth = 500;
-% 
-% feedback = exp(-t ./0.2);
-% feedback = normalize(feedback(1 : fb_lth));
-% ln       = exp(I);
-% 
-% glm = I*2;
-% 
-% % simulate resursive LN response
-% for it = 1 : length(Stim)
-%     idx = it : min(length(Stim), it + fb_lth-1);
-%     glm(idx) = glm(idx) - 0.1*exp(glm(it)) * feedback(1 : length(idx));
-% end
-% 
-% 
-% glm = glm  - glm(12000);
-% 
-% figure (1), subplot(7, 1, 6), cla, plot(t, normMax(glm(1001 : end - 1000)),'r-', 'linewidth', 2.5), hold on, plot(t, normMax(I(1001 : end - 1000)), 'k-'),  box off, axis tight
-% title('Pillow et al. 2008'), set(gca, 'fontsize', 14), xlabel('time (s)'),

@@ -20,6 +20,8 @@ prm  = dn.param; % tau1, tau2, n, sigma, shift
 
 %% COMPUTE MEAN AND STD OF THE SUMMARY METRICS
 
+nRois = 4;
+
 m_metrics = []; s_metrics = [];
 
 for iroi = 1: nRois
@@ -41,6 +43,8 @@ end
 %% PLOT SUMMARY METRICS
 
 title_txt = {'T_{peak}', 'R_{asymp}'};
+
+rois = {'V1', 'V2', 'V3', 'anterior'};
 
 fg3 = figure (1); clf
 for k = 1 : 2
@@ -74,3 +78,5 @@ subplot(4, 4, 5), ylim([0, 0.45])
 subplot(4, 4, 6), ylim([0, 0.2])
 subplot(4, 4, 7), ylim([0, 5])
 subplot(4, 4, 8), ylim([0, 0.2])
+
+%% COMBINE ECCENTRICITY

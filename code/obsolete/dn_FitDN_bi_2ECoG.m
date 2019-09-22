@@ -49,7 +49,7 @@ ecog    = a.dt.ecog;
 ecogPrm = b.prm.ecog;
 
 ElecIdx = ecog.elec_roi;
-ecc     = ecog.prf.ecc;
+ecc     = ecog.ecc;
 bbts    = ecog.bbts_roi;
 nrois   = length(ecc);
 
